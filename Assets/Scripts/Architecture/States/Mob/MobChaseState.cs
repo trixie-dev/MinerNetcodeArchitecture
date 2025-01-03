@@ -5,17 +5,19 @@ public class MobChaseState : State
     private MobEntity mob;
     private CharacterEntity target;
     private float attackRange = 2f;
+    private NetworkMovementComponent movement;
 
     public MobChaseState(MobEntity owner) : base(owner)
     {
         mob = owner;
+        movement = owner.GetComponent<NetworkMovementComponent>();
     }
 
     public override void Update()
     {
         if (target == null)
         {
-            mob.GetComponent<StateMachine>().SetState<MobIdleState>();
+            mob.stateMachine.SetState<MobIdleState>();
             return;
         }
 
@@ -23,11 +25,12 @@ public class MobChaseState : State
 
         if (distance <= attackRange)
         {
-            //mob.GetComponent<StateMachine>().SetState<MobAttackState>();
+            //mob.stateMachine.SetState<MobAttackState>();
         }
         else
         {
-            // Логіка переслідування цілі
+            // Використовуємо NetworkMovementComponent для руху
+            movement.MoveToPosition(target.Position);
         }
     }
 }

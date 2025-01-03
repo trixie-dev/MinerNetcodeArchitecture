@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class BotEntity : CharacterEntity
 {
-    protected StateMachine stateMachine;
+    public StateMachine stateMachine { get; private set; }
 
     protected override void Awake()
     {
@@ -17,7 +17,7 @@ public class BotEntity : CharacterEntity
         // Додаємо стани
         stateMachine.AddState(new BotIdleState(this));
         stateMachine.AddState(new BotGatheringState(this));
-        //stateMachine.AddState(new BotMovingState(this));
+        stateMachine.AddState(new BotMovingState(this));
 
         // Встановлюємо початковий стан
         stateMachine.SetState<BotIdleState>();
@@ -31,5 +31,15 @@ public class BotEntity : CharacterEntity
     private void FixedUpdate()
     {
         stateMachine.FixedUpdate();
+    }
+
+    protected override void RegisterInManager()
+    {
+        ObjectManager.Instance.RegisterBot(this);
+    }
+
+    protected override void UnregisterFromManager()
+    {
+        ObjectManager.Instance.UnregisterBot(this);
     }
 }

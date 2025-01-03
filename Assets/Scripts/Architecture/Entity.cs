@@ -9,9 +9,12 @@ public abstract class Entity : NetworkBehaviour
     // Базові властивості для всіх сутностей
     public Vector2 Position => transform.position;
 
+    protected EntityStatsComponent stats;
+
     // Додаємо віртуальний Awake
     protected virtual void Awake()
     {
+        stats = GetComponent<EntityStatsComponent>();
         // Базова ініціалізація
     }
 
@@ -23,4 +26,19 @@ public abstract class Entity : NetworkBehaviour
         if (!IsSpawned) return;
         UpdateLogic();
     }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        RegisterInManager();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        UnregisterFromManager();
+        base.OnNetworkDespawn();
+    }
+
+    protected virtual void RegisterInManager() { }
+    protected virtual void UnregisterFromManager() { }
 }

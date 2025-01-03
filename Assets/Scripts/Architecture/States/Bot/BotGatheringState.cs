@@ -26,7 +26,7 @@ public class BotGatheringState : State
             if (!bot.AddResource(10f))
             {
                 // Якщо рюкзак повний, перейти до іншого стану
-                //bot.GetComponent<StateMachine>().SetState<BotMovingState>();
+                bot.stateMachine.SetState<BotMovingState>();
             }
             gatheringTime = 0f;
         }

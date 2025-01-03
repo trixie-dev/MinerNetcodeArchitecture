@@ -23,7 +23,7 @@ public class BotIdleState : State
         if (idleTime >= maxIdleTime)
         {
             // Перехід до збору ресурсів
-            bot.GetComponent<StateMachine>().SetState<BotGatheringState>();
+            bot.stateMachine.SetState<BotGatheringState>();
         }
     }
 }

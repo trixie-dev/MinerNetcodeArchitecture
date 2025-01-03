@@ -8,7 +8,7 @@ public class MobEntity : Entity
     [SerializeField] private float attackCooldown = 1f;
 
     private float nextAttackTime;
-    protected StateMachine stateMachine;
+    public StateMachine stateMachine { get; private set; }
 
     protected override void Awake()
     {
@@ -49,5 +49,15 @@ public class MobEntity : Entity
     private void FixedUpdate()
     {
         stateMachine.FixedUpdate();
+    }
+
+    protected override void RegisterInManager()
+    {
+        ObjectManager.Instance.RegisterMob(this);
+    }
+
+    protected override void UnregisterFromManager()
+    {
+        ObjectManager.Instance.UnregisterMob(this);
     }
 }

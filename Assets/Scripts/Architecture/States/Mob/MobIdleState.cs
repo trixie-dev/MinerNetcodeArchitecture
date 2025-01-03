@@ -19,7 +19,7 @@ public class MobIdleState : State
             // Пошук найближчого гравця
             if (FindNearestPlayer())
             {
-                mob.GetComponent<StateMachine>().SetState<MobChaseState>();
+                mob.stateMachine.SetState<MobChaseState>();
             }
             nextSearchTime = Time.time + searchInterval;
         }
@@ -27,7 +27,8 @@ public class MobIdleState : State
 
     private bool FindNearestPlayer()
     {
-        // Реалізація пошуку гравця
-        return false;
+        // Реалізація пошуку гравця через ObjectManager
+        var nearestPlayer = ObjectManager.Instance.GetNearestPlayer(mob.Position);
+        return nearestPlayer != null;
     }
 }
