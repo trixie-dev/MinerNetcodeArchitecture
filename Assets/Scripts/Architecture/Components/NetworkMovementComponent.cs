@@ -1,54 +1,35 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(NetworkTransform))]
 public class NetworkMovementComponent : NetworkBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 720f;
-    [SerializeField] private float interpolationFactor = 15f;
 
-    // Мережеві змінні для синхронізації
-    private NetworkVariable<Vector2> netPosition = new NetworkVariable<Vector2>();
-    private NetworkVariable<float> netRotation = new NetworkVariable<float>();
+    private NetworkTransform networkTransform;
 
-    // Локальні змінні для інтерполяції
-    private Vector2 velocity;
-    private Vector2 targetPosition;
-    private float targetRotation;
-
-    // Додаємо властивості для AI
+    // Властивості для AI
     public bool IsMoving { get; private set; }
     public Vector2 CurrentMoveDirection { get; private set; }
 
-    public override void OnNetworkSpawn()
+    private void Awake()
     {
-        base.OnNetworkSpawn();
-
-        if (IsServer)
-        {
-            netPosition.Value = transform.position;
-            netRotation.Value = transform.eulerAngles.z;
-        }
-
-        targetPosition = transform.position;
-        targetRotation = transform.eulerAngles.z;
+        networkTransform = GetComponent<NetworkTransform>();
+        // Дозволяємо клієнту-власнику керувати об'єктом
+        networkTransform.InLocalSpace = false;
+        networkTransform.Interpolate = true;
+        networkTransform.SyncPositionX = networkTransform.SyncPositionY = true;
+        networkTransform.SyncRotAngleZ = true;
     }
 
-    private void Update()
-    {
-        if (!IsOwner && !IsServer)
-        {
-            // Інтерполяція для не-власників
-            InterpolateMovement();
-        }
-    }
-
-    #region Movement Methods
     // Метод для руху гравця (керованого вводом)
     public void HandlePlayerInput(Vector2 input)
     {
+        // Дозволяємо рух як власнику, так і серверу
         if (!IsOwner && !IsServer) return;
 
         if (input != Vector2.zero)
@@ -81,15 +62,6 @@ public class NetworkMovementComponent : NetworkBehaviour
         CurrentMoveDirection = direction;
         Vector2 movement = direction * moveSpeed * Time.deltaTime;
         transform.position += (Vector3)movement;
-
-        if (IsServer)
-        {
-            netPosition.Value = transform.position;
-        }
-        else if (IsOwner)
-        {
-            RequestMoveServerRpc(transform.position, transform.eulerAngles.z);
-        }
     }
 
     private void Rotate(Vector2 direction)
@@ -102,59 +74,5 @@ public class NetworkMovementComponent : NetworkBehaviour
         );
 
         transform.rotation = Quaternion.Euler(0, 0, rotation);
-
-        if (IsServer)
-        {
-            netRotation.Value = rotation;
-        }
     }
-
-    private void InterpolateMovement()
-    {
-        transform.position = Vector3.Lerp(
-            transform.position,
-            netPosition.Value,
-            Time.deltaTime * interpolationFactor
-        );
-
-        float currentRotation = transform.eulerAngles.z;
-        float newRotation = Mathf.LerpAngle(
-            currentRotation,
-            netRotation.Value,
-            Time.deltaTime * interpolationFactor
-        );
-        transform.rotation = Quaternion.Euler(0, 0, newRotation);
-    }
-    #endregion
-
-    #region Network RPCs
-    [ServerRpc]
-    private void RequestMoveServerRpc(Vector2 newPosition, float newRotation, ServerRpcParams rpcParams = default)
-    {
-        // Валідація руху на сервері
-        Vector2 currentPos = transform.position;
-        float distance = Vector2.Distance(currentPos, newPosition);
-        float maxDistance = moveSpeed * Time.deltaTime * 1.5f;
-
-        if (distance <= maxDistance)
-        {
-            netPosition.Value = newPosition;
-            netRotation.Value = newRotation;
-            transform.position = newPosition;
-            transform.rotation = Quaternion.Euler(0, 0, newRotation);
-        }
-        else
-        {
-            SyncPositionClientRpc(netPosition.Value, netRotation.Value);
-        }
-    }
-
-    [ClientRpc]
-    private void SyncPositionClientRpc(Vector2 position, float rotation)
-    {
-        if (!IsOwner) return;
-        transform.position = position;
-        transform.rotation = Quaternion.Euler(0, 0, rotation);
-    }
-    #endregion
 }

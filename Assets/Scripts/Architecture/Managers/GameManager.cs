@@ -110,7 +110,10 @@ public class GameManager : NetworkBehaviour
         if (!IsServer) return;
 
         var player = Instantiate(playerPrefab, position, Quaternion.identity);
-        player.NetworkObject.SpawnWithOwnership(clientId);
+        var networkObject = player.GetComponent<NetworkObject>();
+        networkObject.SpawnWithOwnership(clientId);
+
+        Debug.Log($"Spawning player for client {clientId}");
     }
 
     public void SpawnBot(Vector2 position)
