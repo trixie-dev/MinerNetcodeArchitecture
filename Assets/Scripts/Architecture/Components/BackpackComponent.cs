@@ -5,8 +5,7 @@ using UnityEngine.Events;
 public class BackpackComponent : NetworkBehaviour
 {
     [Header("Backpack Settings")]
-    [SerializeField] private float maxCapacity = 100f;
-    [SerializeField] private float repairRate = 5f; // Швидкість відновлення місткості
+    [SerializeField] private float baseMaxCapacity = 50f;  // Базова місткість без рюкзака
 
     // Мережеві змінні
     private NetworkVariable<float> netCurrentCapacity = new NetworkVariable<float>();
@@ -20,6 +19,12 @@ public class BackpackComponent : NetworkBehaviour
     public event UnityAction OnBackpackFull;
     public event UnityAction OnBackpackBroke;
 
+    // Приватні поля
+    private float currentCapacity;
+    private float maxCapacity;
+    private float resourceAmount;
+    private EquipmentComponent equipment;
+
     // Властивості
     public float MaxCapacity => IsServer ? maxCapacity : netMaxCapacity.Value;
     public float CurrentCapacity => IsServer ? currentCapacity : netCurrentCapacity.Value;
@@ -27,14 +32,25 @@ public class BackpackComponent : NetworkBehaviour
     public bool IsFull => ResourceAmount >= CurrentCapacity;
     public bool IsBroken => CurrentCapacity <= 0;
 
-    private float currentCapacity;
-    private float resourceAmount;
-    private bool isRepairing;
-
     private void Awake()
     {
-        currentCapacity = maxCapacity;
+        equipment = GetComponent<EquipmentComponent>();
+        currentCapacity = baseMaxCapacity;
+        maxCapacity = baseMaxCapacity;
         resourceAmount = 0f;
+
+        if (equipment != null)
+        {
+            equipment.OnEquipmentChanged += HandleEquipmentChanged;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (equipment != null)
+        {
+            equipment.OnEquipmentChanged -= HandleEquipmentChanged;
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -43,8 +59,8 @@ public class BackpackComponent : NetworkBehaviour
 
         if (IsServer)
         {
+            UpdateMaxCapacity();
             netCurrentCapacity.Value = currentCapacity;
-            netMaxCapacity.Value = maxCapacity;
             netResourceAmount.Value = resourceAmount;
         }
 
@@ -60,11 +76,36 @@ public class BackpackComponent : NetworkBehaviour
         base.OnNetworkDespawn();
     }
 
-    private void Update()
+    private void HandleEquipmentChanged(Equipment changedEquipment)
     {
-        if (IsServer && isRepairing)
+        if (!IsServer) return;
+        UpdateMaxCapacity();
+    }
+
+    private void UpdateMaxCapacity()
+    {
+        if (!IsServer) return;
+
+        float newMaxCapacity = baseMaxCapacity;
+
+        if (equipment?.CurrentBackpack != null)
         {
-            RepairCapacity();
+            newMaxCapacity += equipment.CurrentBackpack.MaxCapacity;
+        }
+
+        maxCapacity = newMaxCapacity;
+        currentCapacity = Mathf.Min(currentCapacity, maxCapacity);
+
+        netMaxCapacity.Value = maxCapacity;
+        netCurrentCapacity.Value = currentCapacity;
+
+        // Якщо поточна кількість ресурсів перевищує нову місткість
+        if (resourceAmount > maxCapacity)
+        {
+            float excess = resourceAmount - maxCapacity;
+            resourceAmount = maxCapacity;
+            netResourceAmount.Value = resourceAmount;
+            DropResources(excess);
         }
     }
 
@@ -125,26 +166,6 @@ public class BackpackComponent : NetworkBehaviour
         }
     }
 
-    public void StartRepairing()
-    {
-        if (!IsServer) return;
-        isRepairing = true;
-    }
-
-    public void StopRepairing()
-    {
-        if (!IsServer) return;
-        isRepairing = false;
-    }
-
-    private void RepairCapacity()
-    {
-        if (currentCapacity >= maxCapacity) return;
-
-        currentCapacity = Mathf.Min(maxCapacity, currentCapacity + repairRate * Time.deltaTime);
-        netCurrentCapacity.Value = currentCapacity;
-    }
-
     public void DropAllResources()
     {
         if (resourceAmount > 0)
@@ -158,7 +179,6 @@ public class BackpackComponent : NetworkBehaviour
     private void DropResources(float amount)
     {
         // Тут можна створити об'єкт ресурсів на землі
-        // Наприклад, спавн префабу з ресурсами
         Vector2 dropPosition = (Vector2)transform.position + Random.insideUnitCircle;
         // GameManager.Instance.SpawnDroppedResource(dropPosition, amount);
     }

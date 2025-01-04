@@ -93,24 +93,69 @@ public class Player : PlayerEntity
     {
         if (!IsOwner) return;
 
+        Debug.Log("HandleAttackInput called"); // DEBUG
+
+        var equipment = GetComponent<EquipmentComponent>();
+        if (equipment == null)
+        {
+            Debug.LogError("No EquipmentComponent found"); // DEBUG
+            return;
+        }
+
         // Спочатку перевіряємо, чи дивимось на ресурс
         var nearestResource = ObjectManager.Instance.GetNearestResource(transform.position);
         if (nearestResource != null && Vector2.Distance(transform.position, nearestResource.Position) <= attackComponent.AttackRange)
         {
-            // Взаємодія з ресурсом
-            RequestInteractServerRpc();
+            Debug.Log($"Attempting to mine resource at distance {Vector2.Distance(transform.position, nearestResource.Position)}"); // DEBUG
+
+            // Перевіряємо чи можемо атакувати
+            if (!attackComponent.CanAttack())
+            {
+                Debug.Log("Mining blocked by cooldown"); // DEBUG
+                return;
+            }
+
+            float miningDamage = equipment.CurrentPickaxe?.Damage ?? 1f;
+            Debug.Log($"Mining damage: {miningDamage} (Pickaxe: {equipment.CurrentPickaxe?.Name ?? "None"})"); // DEBUG
+
+            if (nearestResource.TryHarvest(miningDamage))
+            {
+                Debug.Log($"Successfully mined {miningDamage} resources"); // DEBUG
+                AddResource(miningDamage);
+                attackComponent.UpdateNextAttackTime(); // Оновлюємо час наступної атаки
+            }
+            else
+            {
+                Debug.Log("Failed to mine resource"); // DEBUG
+            }
             return;
         }
 
         // Якщо не ресурс, шукаємо моба
         var nearestMob = ObjectManager.Instance.GetNearestMob(transform.position);
-        if (nearestMob != null && attackComponent.IsInRange(nearestMob.Position))
+        if (nearestMob != null)
         {
-            // Перевіряємо витривалість перед атакою
-            if (stats.UseStamina(10f))
+            Debug.Log($"Found nearest mob at distance {Vector2.Distance(transform.position, nearestMob.Position)}"); // DEBUG
+            if (attackComponent.IsInRange(nearestMob.Position))
             {
-                attackComponent.TryAttack(nearestMob);
+                Debug.Log("Attempting to attack mob"); // DEBUG
+                if (stats.UseStamina(10f))
+                {
+                    attackComponent.TryAttack(nearestMob);
+                }
+                else
+                {
+                    Debug.Log("Not enough stamina to attack"); // DEBUG
+                }
             }
+            else
+            {
+                Debug.Log("Mob is out of range"); // DEBUG
+            }
+        }
+        else
+        {
+            Debug.Log("No targets found"); // DEBUG
         }
     }
 

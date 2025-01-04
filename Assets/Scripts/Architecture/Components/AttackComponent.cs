@@ -19,6 +19,7 @@ public class AttackComponent : NetworkBehaviour
     private void Awake()
     {
         stats = GetComponent<EntityStatsComponent>();
+        nextAttackTime = 0f; // Можемо атакувати відразу після спавну
     }
 
     public bool CanAttack()
@@ -31,11 +32,47 @@ public class AttackComponent : NetworkBehaviour
         return Vector2.Distance(transform.position, targetPosition) <= attackRange;
     }
 
+    private void LogAttack(Entity target, float damage, bool success, string reason = "")
+    {
+        // Логуємо і на клієнті, і на сервері
+        string side = IsServer ? "Server" : "Client";
+        string timeStamp = TimeFormatter.FormatTime(Time.time);
+        string attackerName = GetComponent<Entity>()?.GetType().Name ?? "Unknown";
+        string targetName = target?.GetType().Name ?? "Unknown";
+        string attackerId = NetworkObject.OwnerClientId.ToString();
+        string targetId = target?.GetComponent<NetworkObject>()?.OwnerClientId.ToString() ?? "None";
+
+        if (success)
+        {
+            Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
+                "[{0}][{1}] Attack: {2}({3}) -> {4}({5}), Damage: {6:F1}, NextAttack: {7}",
+                side, timeStamp, attackerName, attackerId, targetName, targetId, damage,
+                TimeFormatter.FormatTime(nextAttackTime));
+        }
+        else
+        {
+            Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
+                "[{0}][{1}] Attack Failed: {2}({3}) -> {4}({5}), Reason: {6}",
+                side, timeStamp, attackerName, attackerId, targetName, targetId, reason);
+        }
+    }
+
     public void TryAttack(Entity target)
     {
+        Debug.Log($"TryAttack called on {(IsServer ? "Server" : "Client")}"); // DEBUG
+
+        if (!CanAttack())
+        {
+            Debug.Log($"Attack blocked by cooldown. Time: {Time.time}, NextAttack: {nextAttackTime}"); // DEBUG
+            LogAttack(target, 0, false, "Cooldown");
+            OnAttackFailed?.Invoke();
+            return;
+        }
+
         // Якщо це серверний об'єкт, виконуємо атаку напряму
         if (IsServer)
         {
+            Debug.Log("Executing attack on server directly"); // DEBUG
             PerformAttack(target);
             return;
         }
@@ -43,20 +80,28 @@ public class AttackComponent : NetworkBehaviour
         // Якщо це клієнтський об'єкт, відправляємо ServerRpc
         if (IsOwner)
         {
+            Debug.Log("Sending attack request to server"); // DEBUG
             RequestAttackServerRpc(target.NetworkObjectId);
+            UpdateNextAttackTime();
         }
     }
 
     private void PerformAttack(Entity target)
     {
+        Debug.Log($"PerformAttack called on {(IsServer ? "Server" : "Client")}"); // DEBUG
+
         if (!CanAttack() || target == null)
         {
+            string reason = target == null ? "No Target" : "Cooldown";
+            Debug.Log($"Attack failed: {reason}"); // DEBUG
+            LogAttack(target, 0, false, reason);
             OnAttackFailed?.Invoke();
             return;
         }
 
         if (!IsInRange(target.Position))
         {
+            LogAttack(target, 0, false, "Out of Range");
             OnAttackFailed?.Invoke();
             return;
         }
@@ -83,6 +128,7 @@ public class AttackComponent : NetworkBehaviour
 
         if (!canAttack)
         {
+            LogAttack(target, 0, false, "Invalid Target Type");
             OnAttackFailed?.Invoke();
             return;
         }
@@ -94,25 +140,56 @@ public class AttackComponent : NetworkBehaviour
         if (target.TryGetComponent<EntityStatsComponent>(out var targetStats))
         {
             targetStats.ApplyDamage(damage);
+            LogAttack(target, damage, true);
+        }
+        else
+        {
+            LogAttack(target, 0, false, "No EntityStats Component");
         }
 
         // Оновлюємо час наступної атаки
-        float actualCooldown = stats != null ? 1f / stats.AttackSpeed : attackCooldown;
-        nextAttackTime = Time.time + actualCooldown;
+        UpdateNextAttackTime();
 
         OnAttackPerformed?.Invoke(target);
         NotifyAttackClientRpc(target.NetworkObjectId);
     }
 
-    [ServerRpc(RequireOwnership = false)] // Дозволяємо виклик без власності
+    public void UpdateNextAttackTime()
+    {
+        float actualCooldown = stats != null ? 1f / stats.AttackSpeed : attackCooldown;
+        nextAttackTime = Time.time + actualCooldown;
+        Debug.Log($"Next attack time updated to: {TimeFormatter.FormatTime(nextAttackTime)}"); // DEBUG
+    }
+
+    [ServerRpc(RequireOwnership = false)]
     private void RequestAttackServerRpc(ulong targetNetId, ServerRpcParams rpcParams = default)
     {
+        Debug.Log("ServerRpc received"); // DEBUG
+
+        if (!CanAttack())
+        {
+            Debug.Log($"ServerRpc rejected: cooldown not ready. Time: {Time.time}, NextAttack: {nextAttackTime}"); // DEBUG
+            return;
+        }
+
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetNetId, out NetworkObject targetObject))
         {
             if (targetObject.TryGetComponent<Entity>(out Entity target))
             {
                 PerformAttack(target);
             }
+            else
+            {
+                Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
+                    "[Server] Attack request rejected: Target {0} has no Entity component",
+                    targetNetId);
+            }
+        }
+        else
+        {
+            Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
+                "[Server] Attack request rejected: Target {0} not found",
+                targetNetId);
         }
     }
 

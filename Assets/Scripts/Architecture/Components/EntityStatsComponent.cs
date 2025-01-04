@@ -60,9 +60,57 @@ public class EntityStatsComponent : NetworkBehaviour
     public float AttackSpeed => attackSpeed.CurrentValue;
     public float MoveSpeed => moveSpeed.CurrentValue;
 
+    private EquipmentComponent equipment;
+
     private void Awake()
     {
         InitializeStats();
+        equipment = GetComponent<EquipmentComponent>();
+
+        if (equipment != null)
+        {
+            equipment.OnEquipmentChanged += HandleEquipmentChanged;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (equipment != null)
+        {
+            equipment.OnEquipmentChanged -= HandleEquipmentChanged;
+        }
+    }
+
+    private void HandleEquipmentChanged(Equipment changedEquipment)
+    {
+        if (!IsServer) return;
+
+        // Перераховуємо всі стати з урахуванням спорядження
+        RecalculateStats();
+    }
+
+    private void RecalculateStats()
+    {
+        if (equipment == null) return;
+
+        // Скидаємо стати до базових значень
+        damage.CurrentValue = damage.baseValue;
+        armor.CurrentValue = armor.baseValue;
+
+        // Додаємо бонуси від спорядження
+        if (equipment.CurrentPickaxe != null)
+        {
+            damage.CurrentValue += equipment.CurrentPickaxe.Damage;
+        }
+
+        if (equipment.CurrentArmor != null)
+        {
+            armor.CurrentValue += equipment.CurrentArmor.Defense;
+        }
+
+        // Оновлюємо мережеві змінні
+        netHealth.Value = health.CurrentValue;
+        netStamina.Value = stamina.CurrentValue;
     }
 
     public override void OnNetworkSpawn()
@@ -73,6 +121,8 @@ public class EntityStatsComponent : NetworkBehaviour
         {
             netHealth.Value = health.CurrentValue;
             netStamina.Value = stamina.CurrentValue;
+            // Перераховуємо стати при спавні
+            RecalculateStats();
         }
 
         // Підписка на зміни мережевих змінних

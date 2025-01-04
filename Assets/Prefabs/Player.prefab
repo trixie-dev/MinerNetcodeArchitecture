@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 3620423173838076153}
   - component: {fileID: -5247651048792718420}
   - component: {fileID: 3108898651673568397}
+  - component: {fileID: 9120785539462787756}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -176,8 +177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxCapacity: 100
-  repairRate: 5
+  baseMaxCapacity: 50
 --- !u!114 &3108898651673568397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,6 +192,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   moveSpeed: 5
+--- !u!114 &9120785539462787756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2243244193737884544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 108421014ee994210a4808df9ee80c87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &5409861319726087482
 GameObject:
   m_ObjectHideFlags: 0

@@ -48,11 +48,38 @@ public class DebugHUD : MonoBehaviour
             var backpack = localPlayer.GetComponent<BackpackComponent>();
             var networkObject = localPlayer.GetComponent<NetworkObject>();
             var attackComponent = localPlayer.GetComponent<AttackComponent>();
+            var equipment = localPlayer.GetComponent<EquipmentComponent>();
 
             debugInfo = $"Player Debug Info:\n";
             debugInfo += $"Network State: {(NetworkManager.Singleton.IsServer ? "Server" : "Client")}\n";
             debugInfo += $"ClientId: {networkObject.OwnerClientId}\n";
             debugInfo += $"Position: {localPlayer.Position:F1}\n";
+
+            if (equipment != null)
+            {
+                debugInfo += "\nEquipment:\n";
+
+                var pickaxe = equipment.CurrentPickaxe;
+                if (pickaxe != null)
+                {
+                    debugInfo += $"Pickaxe: {pickaxe.Name}\n";
+                    debugInfo += $"- Damage: {pickaxe.Damage:F1}\n";
+                }
+
+                var armor = equipment.CurrentArmor;
+                if (armor != null)
+                {
+                    debugInfo += $"Armor: {armor.Name}\n";
+                    debugInfo += $"- Defense: {armor.Defense:F1}\n";
+                }
+
+                var equipBackpack = equipment.CurrentBackpack;
+                if (equipBackpack != null)
+                {
+                    debugInfo += $"Backpack: {equipBackpack.Name}\n";
+                    debugInfo += $"- Max Capacity: {equipBackpack.MaxCapacity:F1}\n";
+                }
+            }
 
             if (stats != null)
             {
@@ -67,8 +94,8 @@ public class DebugHUD : MonoBehaviour
 
             if (backpack != null)
             {
-                debugInfo += "\nBackpack:\n";
-                debugInfo += $"Capacity: {backpack.CurrentCapacity:F1}/{backpack.MaxCapacity:F1}\n";
+                debugInfo += "\nBackpack Status:\n";
+                debugInfo += $"Current/Max Capacity: {backpack.CurrentCapacity:F1}/{backpack.MaxCapacity:F1}\n";
                 debugInfo += $"Resources: {backpack.ResourceAmount:F1}\n";
                 debugInfo += $"Is Full: {backpack.IsFull}\n";
                 debugInfo += $"Is Broken: {backpack.IsBroken}\n";
