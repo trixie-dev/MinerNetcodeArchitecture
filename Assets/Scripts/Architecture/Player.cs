@@ -1,14 +1,17 @@
 using Unity.Netcode;
 using UnityEngine;
 
-[RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkMovementComponent))]
 [RequireComponent(typeof(InputComponent))]
+[RequireComponent(typeof(AttackComponent))]
 public class Player : PlayerEntity
 {
+    private AttackComponent attackComponent;
+
     protected override void Awake()
     {
         base.Awake();
+        attackComponent = GetComponent<AttackComponent>();
 
         // Підписуємося на події вводу
         if (input != null)
@@ -90,11 +93,24 @@ public class Player : PlayerEntity
     {
         if (!IsOwner) return;
 
-        // Перевірка витривалості перед атакою
-        if (stats.UseStamina(10f))
+        // Спочатку перевіряємо, чи дивимось на ресурс
+        var nearestResource = ObjectManager.Instance.GetNearestResource(transform.position);
+        if (nearestResource != null && Vector2.Distance(transform.position, nearestResource.Position) <= attackComponent.AttackRange)
         {
-            // Виконуємо атаку
-            RequestAttackServerRpc();
+            // Взаємодія з ресурсом
+            RequestInteractServerRpc();
+            return;
+        }
+
+        // Якщо не ресурс, шукаємо моба
+        var nearestMob = ObjectManager.Instance.GetNearestMob(transform.position);
+        if (nearestMob != null && attackComponent.IsInRange(nearestMob.Position))
+        {
+            // Перевіряємо витривалість перед атакою
+            if (stats.UseStamina(10f))
+            {
+                attackComponent.TryAttack(nearestMob);
+            }
         }
     }
 

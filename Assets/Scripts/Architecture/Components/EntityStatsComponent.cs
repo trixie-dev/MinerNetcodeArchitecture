@@ -125,10 +125,20 @@ public class EntityStatsComponent : NetworkBehaviour
         if (!IsServer) return;
 
         float effectiveArmor = Mathf.Max(0, armor.CurrentValue - armorPenetration);
-        float damageReduction = effectiveArmor / (effectiveArmor + 100); // Формула зменшення шкоди
+        float damageReduction = effectiveArmor / (effectiveArmor + 100);
         float finalDamage = damage * (1 - damageReduction);
 
-        ModifyHealth(-finalDamage);
+        // Спочатку намагаємося нанести шкоду рюкзаку, якщо він є
+        var backpack = GetComponent<BackpackComponent>();
+        if (backpack != null)
+        {
+            backpack.TakeDamage(finalDamage);
+        }
+        else
+        {
+            // Якщо рюкзака немає, наносимо шкоду здоров'ю
+            ModifyHealth(-finalDamage);
+        }
     }
 
     public bool UseStamina(float amount)

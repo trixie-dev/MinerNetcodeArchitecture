@@ -90,6 +90,25 @@ public class ObjectManager : NetworkBehaviour
 
     #region Helper Methods
 
+    // Пошук найближчого моба до позиції
+    public MobEntity GetNearestMob(Vector2 position)
+    {
+        float nearestDistance = float.MaxValue;
+        MobEntity nearestMob = null;
+
+        foreach (var mob in mobs)
+        {
+            float distance = Vector2.Distance(position, mob.Position);
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestMob = mob;
+            }
+        }
+
+        return nearestMob;
+    }
+
     // Пошук найближчого гравця до позиції
     public PlayerEntity GetNearestPlayer(Vector2 position)
     {

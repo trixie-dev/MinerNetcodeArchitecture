@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(BackpackComponent))]
 public abstract class CharacterEntity : Entity
 {
     protected BackpackComponent backpack;
@@ -14,10 +15,5 @@ public abstract class CharacterEntity : Entity
     public virtual bool AddResource(float amount)
     {
         return backpack?.AddResource(amount) ?? false;
-    }
-
-    public virtual void TakeBackpackDamage(float damage)
-    {
-        backpack?.TakeDamage(damage);
     }
 }

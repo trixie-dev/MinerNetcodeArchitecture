@@ -1,6 +1,10 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
+[RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(NetworkTransform))]
+[RequireComponent(typeof(EntityStatsComponent))]
 public abstract class Entity : NetworkBehaviour
 {
     [Header("Base Entity Properties")]

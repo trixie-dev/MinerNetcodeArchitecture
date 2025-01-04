@@ -6,6 +6,8 @@ public class MobChaseState : State
     private CharacterEntity target;
     private float attackRange = 2f;
     private NetworkMovementComponent movement;
+    private float updateTargetInterval = 0.5f;
+    private float nextUpdateTime;
 
     public MobChaseState(MobEntity owner) : base(owner)
     {
@@ -13,24 +15,40 @@ public class MobChaseState : State
         movement = owner.GetComponent<NetworkMovementComponent>();
     }
 
+    public override void Enter()
+    {
+        target = ObjectManager.Instance.GetNearestPlayer(mob.Position);
+    }
+
     public override void Update()
     {
-        if (target == null)
+        if (Time.time >= nextUpdateTime)
         {
-            mob.stateMachine.SetState<MobIdleState>();
-            return;
+            if (target == null)
+            {
+                target = ObjectManager.Instance.GetNearestPlayer(mob.Position);
+                if (target == null)
+                {
+                    mob.stateMachine.SetState<MobIdleState>();
+                    return;
+                }
+            }
+            nextUpdateTime = Time.time + updateTargetInterval;
         }
 
-        float distance = Vector2.Distance(mob.Position, target.Position);
+        if (target != null)
+        {
+            float distance = Vector2.Distance(mob.Position, target.Position);
 
-        if (distance <= attackRange)
-        {
-            //mob.stateMachine.SetState<MobAttackState>();
-        }
-        else
-        {
-            // Використовуємо NetworkMovementComponent для руху
-            movement.MoveToPosition(target.Position);
+            if (distance <= attackRange)
+            {
+                mob.stateMachine.SetState<MobAttackState>();
+            }
+            else
+            {
+                // Використовуємо NetworkMovementComponent для руху
+                movement.MoveToPosition(target.Position);
+            }
         }
     }
 }

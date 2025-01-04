@@ -145,7 +145,7 @@ public class BackpackComponent : NetworkBehaviour
         netCurrentCapacity.Value = currentCapacity;
     }
 
-    private void DropAllResources()
+    public void DropAllResources()
     {
         if (resourceAmount > 0)
         {
