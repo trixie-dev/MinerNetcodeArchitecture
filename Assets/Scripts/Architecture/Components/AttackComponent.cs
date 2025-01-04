@@ -34,9 +34,8 @@ public class AttackComponent : NetworkBehaviour
 
     private void LogAttack(Entity target, float damage, bool success, string reason = "")
     {
-        // Логуємо і на клієнті, і на сервері
-        string side = IsServer ? "Server" : "Client";
-        string timeStamp = TimeFormatter.FormatTime(Time.time);
+        string side = DebugUtil.FormatNetworkSide(IsServer);
+        string timeStamp = DebugUtil.FormatTime(Time.time);
         string attackerName = GetComponent<Entity>()?.GetType().Name ?? "Unknown";
         string targetName = target?.GetType().Name ?? "Unknown";
         string attackerId = NetworkObject.OwnerClientId.ToString();
@@ -44,16 +43,17 @@ public class AttackComponent : NetworkBehaviour
 
         if (success)
         {
-            Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
-                "[{0}][{1}] Attack: {2}({3}) -> {4}({5}), Damage: {6:F1}, NextAttack: {7}",
-                side, timeStamp, attackerName, attackerId, targetName, targetId, damage,
-                TimeFormatter.FormatTime(nextAttackTime));
+            DebugUtil.LogCombat(
+                $"[{side}][{timeStamp}] Attack: {attackerName}({attackerId}) -> {targetName}({targetId}), " +
+                $"Damage: {damage:F1}, NextAttack: {DebugUtil.FormatTime(nextAttackTime)}"
+            );
         }
         else
         {
-            Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null,
-                "[{0}][{1}] Attack Failed: {2}({3}) -> {4}({5}), Reason: {6}",
-                side, timeStamp, attackerName, attackerId, targetName, targetId, reason);
+            DebugUtil.LogCombat(
+                $"[{side}][{timeStamp}] Attack Failed: {attackerName}({attackerId}) -> {targetName}({targetId}), " +
+                $"Reason: {reason}"
+            );
         }
     }
 

@@ -136,6 +136,7 @@ public class GameManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
+        Debug.Log($"[Server] Spawning resource at {position}"); // DEBUG
         var resource = Instantiate(resourcePrefab, position, Quaternion.identity);
         resource.NetworkObject.Spawn();
     }

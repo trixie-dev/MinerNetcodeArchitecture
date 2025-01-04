@@ -118,15 +118,9 @@ public class Player : PlayerEntity
             float miningDamage = equipment.CurrentPickaxe?.Damage ?? 1f;
             Debug.Log($"Mining damage: {miningDamage} (Pickaxe: {equipment.CurrentPickaxe?.Name ?? "None"})"); // DEBUG
 
-            if (nearestResource.TryHarvest(miningDamage))
+            if (nearestResource.TryHarvest(miningDamage, HandleResourceHarvested))
             {
-                Debug.Log($"Successfully mined {miningDamage} resources"); // DEBUG
-                AddResource(miningDamage);
-                attackComponent.UpdateNextAttackTime(); // Оновлюємо час наступної атаки
-            }
-            else
-            {
-                Debug.Log("Failed to mine resource"); // DEBUG
+                attackComponent.UpdateNextAttackTime();
             }
             return;
         }
@@ -156,6 +150,18 @@ public class Player : PlayerEntity
         else
         {
             Debug.Log("No targets found"); // DEBUG
+        }
+    }
+
+    private void HandleResourceHarvested(float amount)
+    {
+        if (AddResource(amount))
+        {
+            DebugUtil.LogGameplay($"Added {amount} resources to backpack");
+        }
+        else
+        {
+            DebugUtil.LogGameplay("Failed to add resources to backpack", LogType.Warning);
         }
     }
 

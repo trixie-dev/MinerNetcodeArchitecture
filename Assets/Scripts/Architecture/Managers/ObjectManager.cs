@@ -29,6 +29,7 @@ public class ObjectManager : NetworkBehaviour
 
     private void Awake()
     {
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] ObjectManager Awake"); // DEBUG
         if (instance == null)
         {
             instance = this;
@@ -36,8 +37,15 @@ public class ObjectManager : NetworkBehaviour
         }
         else
         {
+            Debug.LogWarning($"[{(IsServer ? "Server" : "Client")}] Duplicate ObjectManager destroyed"); // DEBUG
             Destroy(gameObject);
         }
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] ObjectManager spawned"); // DEBUG
     }
 
     #region Entity Registration
@@ -66,24 +74,44 @@ public class ObjectManager : NetworkBehaviour
 
     public void RegisterMob(MobEntity mob)
     {
+        if (mob == null) return;
+
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Registering mob. Current count: {mobs.Count}"); // DEBUG
         if (!mobs.Contains(mob))
+        {
             mobs.Add(mob);
+            Debug.Log($"[{(IsServer ? "Server" : "Client")}] Mob registered. New count: {mobs.Count}"); // DEBUG
+        }
     }
 
     public void UnregisterMob(MobEntity mob)
     {
+        if (mob == null) return;
+
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Unregistering mob. Current count: {mobs.Count}"); // DEBUG
         mobs.Remove(mob);
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Mob unregistered. New count: {mobs.Count}"); // DEBUG
     }
 
     public void RegisterResource(ResourceNode resource)
     {
+        if (resource == null) return;
+
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Registering resource. Current count: {resources.Count}"); // DEBUG
         if (!resources.Contains(resource))
+        {
             resources.Add(resource);
+            Debug.Log($"[{(IsServer ? "Server" : "Client")}] Resource registered. New count: {resources.Count}"); // DEBUG
+        }
     }
 
     public void UnregisterResource(ResourceNode resource)
     {
+        if (resource == null) return;
+
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Unregistering resource. Current count: {resources.Count}"); // DEBUG
         resources.Remove(resource);
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Resource unregistered. New count: {resources.Count}"); // DEBUG
     }
 
     #endregion
@@ -93,20 +121,29 @@ public class ObjectManager : NetworkBehaviour
     // Пошук найближчого моба до позиції
     public MobEntity GetNearestMob(Vector2 position)
     {
-        float nearestDistance = float.MaxValue;
-        MobEntity nearestMob = null;
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] GetNearestMob called. Mobs count: {mobs.Count}"); // DEBUG
+
+        MobEntity nearest = null;
+        float minDistance = float.MaxValue;
 
         foreach (var mob in mobs)
         {
-            float distance = Vector2.Distance(position, mob.Position);
-            if (distance < nearestDistance)
+            if (mob == null)
             {
-                nearestDistance = distance;
-                nearestMob = mob;
+                Debug.LogWarning($"[{(IsServer ? "Server" : "Client")}] Null mob found in list!"); // DEBUG
+                continue;
+            }
+
+            float distance = Vector2.SqrMagnitude(position - mob.Position);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                nearest = mob;
             }
         }
 
-        return nearestMob;
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Nearest mob found: {(nearest != null ? $"at distance {Mathf.Sqrt(minDistance)}" : "none")}"); // DEBUG
+        return nearest;
     }
 
     // Пошук найближчого гравця до позиції
@@ -131,20 +168,29 @@ public class ObjectManager : NetworkBehaviour
     // Пошук найближчого ресурсу до позиції
     public ResourceNode GetNearestResource(Vector2 position)
     {
-        float nearestDistance = float.MaxValue;
-        ResourceNode nearestResource = null;
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] GetNearestResource called. Resources count: {resources.Count}"); // DEBUG
+
+        ResourceNode nearest = null;
+        float minDistance = float.MaxValue;
 
         foreach (var resource in resources)
         {
-            float distance = Vector2.Distance(position, resource.Position);
-            if (distance < nearestDistance)
+            if (resource == null)
             {
-                nearestDistance = distance;
-                nearestResource = resource;
+                Debug.LogWarning($"[{(IsServer ? "Server" : "Client")}] Null resource found in list!"); // DEBUG
+                continue;
+            }
+
+            float distance = Vector2.SqrMagnitude(position - resource.Position);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                nearest = resource;
             }
         }
 
-        return nearestResource;
+        Debug.Log($"[{(IsServer ? "Server" : "Client")}] Nearest resource found: {(nearest != null ? $"at distance {Mathf.Sqrt(minDistance)}" : "none")}"); // DEBUG
+        return nearest;
     }
 
     // Отримання всіх сутностей в радіусі
