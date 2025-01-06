@@ -4,14 +4,21 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkMovementComponent))]
 [RequireComponent(typeof(InputComponent))]
 [RequireComponent(typeof(AttackComponent))]
+[RequireComponent(typeof(EffectsComponent))]
 public class Player : PlayerEntity
 {
     private AttackComponent attackComponent;
+    private SpeedBooster speedBooster;
+    private AoEStunner aoeStunner;
 
     protected override void Awake()
     {
         base.Awake();
         attackComponent = GetComponent<AttackComponent>();
+
+        // Ініціалізуємо предмети
+        speedBooster = new SpeedBooster();
+        aoeStunner = new AoEStunner();
 
         // Підписуємося на події вводу
         if (input != null)
@@ -20,6 +27,8 @@ public class Player : PlayerEntity
             input.OnInteractInput += HandleInteractInput;
             input.OnAttackInput += HandleAttackInput;
             input.OnInventoryInput += HandleInventoryInput;
+            input.OnUseSpeedBooster += HandleSpeedBooster;
+            input.OnUseStunner += HandleStunner;
         }
 
         if (stats != null)
@@ -47,6 +56,8 @@ public class Player : PlayerEntity
             input.OnInteractInput -= HandleInteractInput;
             input.OnAttackInput -= HandleAttackInput;
             input.OnInventoryInput -= HandleInventoryInput;
+            input.OnUseSpeedBooster -= HandleSpeedBooster;
+            input.OnUseStunner -= HandleStunner;
         }
 
         if (stats != null)
@@ -232,5 +243,45 @@ public class Player : PlayerEntity
     private void HandleBackpackBroke()
     {
         // Логіка поломки рюкзака
+    }
+
+    private void HandleSpeedBooster()
+    {
+        if (!IsOwner) return;
+
+        if (speedBooster.CanUse(Time.time))
+        {
+            RequestUseSpeedBoosterServerRpc();
+        }
+    }
+
+    private void HandleStunner()
+    {
+        if (!IsOwner) return;
+
+        if (aoeStunner.CanUse(Time.time))
+        {
+            RequestUseStunnerServerRpc();
+        }
+    }
+
+    [ServerRpc]
+    private void RequestUseSpeedBoosterServerRpc()
+    {
+        if (speedBooster.CanUse(Time.time))
+        {
+            speedBooster.Use(this);
+            speedBooster.StartCooldown(Time.time);
+        }
+    }
+
+    [ServerRpc]
+    private void RequestUseStunnerServerRpc()
+    {
+        if (aoeStunner.CanUse(Time.time))
+        {
+            aoeStunner.Use(this);
+            aoeStunner.StartCooldown(Time.time);
+        }
     }
 }

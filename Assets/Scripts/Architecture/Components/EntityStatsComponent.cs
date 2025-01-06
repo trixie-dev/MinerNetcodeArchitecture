@@ -38,6 +38,7 @@ public class EntityStatsComponent : NetworkBehaviour
     // Мережеві змінні для синхронізації
     private NetworkVariable<float> netHealth = new NetworkVariable<float>();
     private NetworkVariable<float> netStamina = new NetworkVariable<float>();
+    private NetworkVariable<float> netSpeedMultiplier = new NetworkVariable<float>(1f);
 
     // Події
     public event UnityAction<float> OnHealthChanged;
@@ -51,6 +52,8 @@ public class EntityStatsComponent : NetworkBehaviour
     private StatValue damage;
     private StatValue attackSpeed;
     private StatValue moveSpeed;
+
+    private float speedMultiplier = 1f;
 
     // Властивості для доступу до характеристик
     public float Health => IsServer ? health.CurrentValue : netHealth.Value;
@@ -108,6 +111,9 @@ public class EntityStatsComponent : NetworkBehaviour
             armor.CurrentValue += equipment.CurrentArmor.Defense;
         }
 
+        // Застосовуємо множник швидкості
+        moveSpeed.CurrentValue = moveSpeed.baseValue * speedMultiplier;
+
         // Оновлюємо мережеві змінні
         netHealth.Value = health.CurrentValue;
         netStamina.Value = stamina.CurrentValue;
@@ -121,6 +127,7 @@ public class EntityStatsComponent : NetworkBehaviour
         {
             netHealth.Value = health.CurrentValue;
             netStamina.Value = stamina.CurrentValue;
+            netSpeedMultiplier.Value = speedMultiplier;
             // Перераховуємо стати при спавні
             RecalculateStats();
         }
@@ -128,12 +135,14 @@ public class EntityStatsComponent : NetworkBehaviour
         // Підписка на зміни мережевих змінних
         netHealth.OnValueChanged += OnNetHealthChanged;
         netStamina.OnValueChanged += OnNetStaminaChanged;
+        netSpeedMultiplier.OnValueChanged += OnSpeedMultiplierChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         netHealth.OnValueChanged -= OnNetHealthChanged;
         netStamina.OnValueChanged -= OnNetStaminaChanged;
+        netSpeedMultiplier.OnValueChanged -= OnSpeedMultiplierChanged;
         base.OnNetworkDespawn();
     }
 
@@ -239,5 +248,21 @@ public class EntityStatsComponent : NetworkBehaviour
     {
         OnStaminaChanged?.Invoke(newValue);
     }
+
+    private void OnSpeedMultiplierChanged(float oldValue, float newValue)
+    {
+        speedMultiplier = newValue;
+        RecalculateStats();
+    }
     #endregion
+
+    // Метод для зміни множника швидкості
+    public void ModifySpeedMultiplier(float multiplier)
+    {
+        if (!IsServer) return;
+
+        speedMultiplier *= multiplier;
+        netSpeedMultiplier.Value = speedMultiplier;
+        RecalculateStats();
+    }
 }

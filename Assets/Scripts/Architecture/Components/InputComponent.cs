@@ -8,6 +8,8 @@ public class InputComponent : MonoBehaviour
     public event UnityAction OnInteractInput;
     public event UnityAction OnAttackInput;
     public event UnityAction OnInventoryInput;
+    public event UnityAction OnUseSpeedBooster;
+    public event UnityAction OnUseStunner;
 
     // Поточний стан вводу
     public Vector2 MoveInput { get; private set; }
@@ -52,6 +54,17 @@ public class InputComponent : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.Tab))
         {
             OnInventoryInput?.Invoke();
+        }
+
+        // Використання предметів
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            OnUseSpeedBooster?.Invoke();
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            OnUseStunner?.Invoke();
         }
     }
 }

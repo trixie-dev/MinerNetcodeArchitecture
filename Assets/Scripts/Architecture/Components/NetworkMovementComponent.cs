@@ -60,7 +60,10 @@ public class NetworkMovementComponent : NetworkBehaviour
     private void Move(Vector2 direction)
     {
         CurrentMoveDirection = direction;
-        Vector2 movement = direction * moveSpeed * Time.deltaTime;
+        var stats = GetComponent<EntityStatsComponent>();
+        float currentSpeed = stats != null ? stats.MoveSpeed : moveSpeed;
+
+        Vector2 movement = direction * currentSpeed * Time.deltaTime;
         transform.position += (Vector3)movement;
     }
 
